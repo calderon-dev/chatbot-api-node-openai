@@ -15,3 +15,8 @@ It demonstrates how to build a REST API that connects to an AI model, making it 
 ---
 
 ## 📂 Project Structure
+public/
+index.html        # Frontend UI
+css/style.css     # Styles
+js/script.js      # Client-side logic
+server.js           # Express server
