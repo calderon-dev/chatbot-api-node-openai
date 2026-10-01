@@ -20,11 +20,7 @@ const openAi = new OpenAI({
     apiKey: process.env.OPENIA_KEY
 })
 
-
-// Define POST route for chatbot requests
-app.post('api/chatbot', async (req, res) => {
-
-    const contextIA = `
+const contextIA = `
     Eres un asistente de soporte para un negocio.
     Información:
         -Ubicación:Calle Siempreviva 132,
@@ -32,7 +28,13 @@ app.post('api/chatbot', async (req, res) => {
         -Productos: Alimenticios y de Limpieza
  `
 
-    const { message } = req.body
+let conversation = {}
+// Define POST route for chatbot requests
+app.post('api/chatbot', async (req, res) => {
+
+    const { userId, message } = req.body
+
+
 
     if (!message) {
         return res.status(404).send({
@@ -41,6 +43,12 @@ app.post('api/chatbot', async (req, res) => {
         })
     }
 
+    if (!conversation[userId]) {
+        conversation[userId] = []
+    }
+
+    conversation[userId].push({ role: "user", content: message })
+
     try {
 
         const response = await openAi.chat.completions.create({
@@ -48,15 +56,21 @@ app.post('api/chatbot', async (req, res) => {
             messages: [
                 { role: "system", content: contextIA },
                 { role: "system", content: "Responder de manera corta y directa" },
-                { role: "user", content: message }
+                ...conversation[userId]
             ],
             max_tokens: 500
         })
 
-         // Extract chatbot reply from response
+        // Extract chatbot reply from response
         const reply = response.choices[0].message.content
 
-        return res.status(200).json({reply})
+        conversation[userId].push({ role: "assistant", content: reply })
+
+        if (conversation[userId].length > 12) {
+            conversation[userId] = conversation[userId].slice(-10)
+        }
+
+        return res.status(200).json({ reply })
 
     } catch (error) {
         return res.status(500).send({
@@ -64,8 +78,6 @@ app.post('api/chatbot', async (req, res) => {
             message: error.message
         })
     }
-
-
 })
 
 app.listen(PORT, () => {
